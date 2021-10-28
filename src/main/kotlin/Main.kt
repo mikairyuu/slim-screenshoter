@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.pointerMoveFilter
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.*
@@ -29,10 +30,12 @@ import java.io.File
 import java.io.IOException
 import java.nio.file.Path
 import javax.imageio.ImageIO
+import kotlin.io.path.pathString
 
 
 var isVisible by mutableStateOf(true)
 var graphicBitmap by mutableStateOf<GraphicBitmap?>(null)
+var lastSaveFolder: String? = null
 
 @ExperimentalComposeUiApi
 @Composable
@@ -215,6 +218,7 @@ fun Toolbars(applicationScope: ApplicationScope, windowScope: FrameWindowScope) 
                     try {
                         val img = ImageIO.read(it.toFile())
                         graphicBitmap = GraphicBitmap(img, img.createGraphics())
+                        windowScope.window.title = it.fileName.toString()
                     } catch (_: IOException) {
                     }
                 }
@@ -226,6 +230,8 @@ fun Toolbars(applicationScope: ApplicationScope, windowScope: FrameWindowScope) 
                 if (it != null) {
                     try {
                         ImageIO.write(graphicBitmap!!.bitmap, "png", it.toFile())
+                        File("${System.getProperty("user.dir")}/slimshot.ini").writeText(it.parent.toString())
+                        lastSaveFolder = it.parent.toString()
                     } catch (_: Exception) {
                     }
                 }
@@ -301,6 +307,9 @@ fun FrameWindowScope.FileDialog(
                 }
             }
         }.apply {
+            if (lastSaveFolder != null) {
+                this.directory = lastSaveFolder
+            }
             this.title = title
         }
     },
@@ -308,8 +317,16 @@ fun FrameWindowScope.FileDialog(
 )
 
 @ExperimentalComposeUiApi
-fun main() = application {
-    Window(visible = isVisible, onCloseRequest = ::exitApplication) {
-        App(this@application, this)
+fun main() {
+    try {
+        lastSaveFolder = File("${System.getProperty("user.dir")}/slimshot.ini").readText()
+    } catch (e: Exception) {
+
+    }
+
+    application {
+        Window(visible = isVisible, onCloseRequest = ::exitApplication) {
+            App(this@application, this)
+        }
     }
 }
