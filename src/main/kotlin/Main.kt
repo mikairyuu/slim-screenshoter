@@ -1,5 +1,3 @@
-// Copyright 2000-2021 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
-
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -10,11 +8,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toComposeImageBitmap
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
@@ -34,6 +34,7 @@ import javax.imageio.ImageIO
 var isVisible by mutableStateOf(true)
 var graphicBitmap by mutableStateOf<GraphicBitmap?>(null)
 
+@ExperimentalComposeUiApi
 @Composable
 @Preview
 fun App(applicationScope: ApplicationScope, windowScope: FrameWindowScope) {
@@ -202,36 +203,49 @@ fun ImagePalette() {
     }
 }
 
+@ExperimentalComposeUiApi
 @Composable
 fun Toolbars(applicationScope: ApplicationScope, windowScope: FrameWindowScope) {
     var isOpenDialog by remember { mutableStateOf(0) }
-    if (isOpenDialog == 1) {
-        windowScope.FileDialog("Выберите файл для открытия", true) {
-            isOpenDialog = 0
-            if (it != null) {
-                try {
-                    val img = ImageIO.read(it.toFile())
-                    graphicBitmap = GraphicBitmap(img, img.createGraphics())
-                } catch (_: IOException) {
+    when (isOpenDialog) {
+        1 -> {
+            windowScope.FileDialog("Выберите файл для открытия", true) {
+                isOpenDialog = 0
+                if (it != null) {
+                    try {
+                        val img = ImageIO.read(it.toFile())
+                        graphicBitmap = GraphicBitmap(img, img.createGraphics())
+                    } catch (_: IOException) {
+                    }
                 }
             }
         }
-    } else if (isOpenDialog == 2) {
-        windowScope.FileDialog("Выберите файл для сохранения", false) {
-            isOpenDialog = 0
-            if (it != null) {
-                try {
-                    ImageIO.write(graphicBitmap!!.bitmap, "jpg", it.toFile())
-                } catch (_: Exception) {
+        2 -> {
+            windowScope.FileDialog("Выберите файл для сохранения", false) {
+                isOpenDialog = 0
+                if (it != null) {
+                    try {
+                        ImageIO.write(graphicBitmap!!.bitmap, "png", it.toFile())
+                    } catch (_: Exception) {
+                    }
                 }
-
+            }
+        }
+        3 -> {
+            try {
+                var counter = 1
+                val homeFolder = System.getProperty("user.home")
+                while (File("${homeFolder}/SlimShotFastSave-${counter}.png").exists()) counter++
+                ImageIO.write(graphicBitmap!!.bitmap, "png", File("${homeFolder}/SlimShotFastSave-${counter}.png"))
+            } catch (e: Exception) {
             }
         }
     }
     windowScope.MenuBar {
         Menu(text = "Файл") {
-            Item("Открыть") { isOpenDialog = 1 }
-            Item("Сохранить") { isOpenDialog = 2 }
+            Item("Открыть", shortcut = KeyShortcut(Key.O, true)) { isOpenDialog = 1 }
+            Item("Сохранить", shortcut = KeyShortcut(Key.S, true)) { isOpenDialog = 2 }
+            Item("Быстрое сохранение", shortcut = KeyShortcut(Key.F, true)) { isOpenDialog = 3 }
             Item("Выйти") { applicationScope.exitApplication() }
         }
     }
@@ -293,6 +307,7 @@ fun FrameWindowScope.FileDialog(
     dispose = FileDialog::dispose
 )
 
+@ExperimentalComposeUiApi
 fun main() = application {
     Window(visible = isVisible, onCloseRequest = ::exitApplication) {
         App(this@application, this)
