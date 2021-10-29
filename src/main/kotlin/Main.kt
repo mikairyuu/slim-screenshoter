@@ -14,9 +14,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toComposeImageBitmap
-import androidx.compose.ui.input.key.*
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyShortcut
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.pointerMoveFilter
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.*
@@ -30,7 +30,6 @@ import java.io.File
 import java.io.IOException
 import java.nio.file.Path
 import javax.imageio.ImageIO
-import kotlin.io.path.pathString
 
 
 var isVisible by mutableStateOf(true)
@@ -325,7 +324,7 @@ fun main() {
     }
 
     application {
-        Window(visible = isVisible, onCloseRequest = ::exitApplication) {
+        Window(visible = isVisible, onCloseRequest = ::exitApplication, title = "SlimShot") {
             App(this@application, this)
         }
     }
