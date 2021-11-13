@@ -18,6 +18,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyShortcut
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.*
 import kotlinx.coroutines.Dispatchers
@@ -87,6 +88,7 @@ fun ImagePalette() {
     var brushColor by remember { mutableStateOf<java.awt.Color>(java.awt.Color.black) }
     var brushSizeFloat by remember { mutableStateOf(0.25F) }
     val magicNumbers = remember { MutablePair(1.0, 1.0) }
+    var size : IntSize? = null;
     var imageRecompositionTrigger by remember { mutableStateOf(0) }
     val cuttingData = remember { CuttingData(mutableStateOf(false), null, null) }
 
@@ -139,10 +141,12 @@ fun ImagePalette() {
                         imageRecompositionTrigger++
                         if (graphicBitmap != null) {
                             if (cuttingData.isCutting.value) {
+                                val localX = if(change.position.x > size!!.width)  size!!.width else change.position.x
+                                val localY = if(change.position.y > size!!.height)  size!!.height else change.position.y
                                 cuttingData.secondPoint!!.first =
-                                    ((magicNumbers.first * change.position.x) - cuttingData.firstPoint!!.first).toInt()
+                                    ((magicNumbers.first * localX.toDouble()) - cuttingData.firstPoint!!.first).toInt()
                                 cuttingData.secondPoint!!.second =
-                                    ((magicNumbers.second * change.position.y) - cuttingData.firstPoint!!.second).toInt()
+                                    ((magicNumbers.second * localY.toDouble()) - cuttingData.firstPoint!!.second).toInt()
                                 graphicBitmap!!.bitmap = copyImage(graphicBitmap!!.rectBackup!!)
                                 graphicBitmap!!.graphics = graphicBitmap!!.bitmap.createGraphics()
                                 graphicBitmap!!.graphics.color = brushColor
@@ -179,6 +183,7 @@ fun ImagePalette() {
                     }
                 )
             }.onGloballyPositioned {
+                size = it.size
                 magicNumbers.first = graphicBitmap!!.bitmap.width / it.size.width.toDouble()
                 magicNumbers.second = graphicBitmap!!.bitmap.height / it.size.height.toDouble()
             }.pointerInput(Unit) {
@@ -224,26 +229,42 @@ fun Toolbars(applicationScope: ApplicationScope, windowScope: FrameWindowScope) 
             }
         }
         2 -> {
-            windowScope.FileDialog("Выберите файл для сохранения", false) {
-                isOpenDialog = 0
-                if (it != null) {
-                    try {
-                        ImageIO.write(graphicBitmap!!.bitmap, "png", it.toFile())
-                        File("${System.getProperty("user.dir")}/slimshot.ini").writeText(it.parent.toString())
-                        lastSaveFolder = it.parent.toString()
-                    } catch (_: Exception) {
+            if (graphicBitmap == null) {
+                isOpenDialog = 4
+            } else {
+                windowScope.FileDialog("Выберите файл для сохранения", false) {
+                    isOpenDialog = 0
+                    if (it != null) {
+                        try {
+                            ImageIO.write(graphicBitmap!!.bitmap, "png", it.toFile())
+                            File("${System.getProperty("user.dir")}/slimshot.ini").writeText(it.parent.toString())
+                            lastSaveFolder = it.parent.toString()
+                        } catch (_: Exception) {
+                        }
                     }
                 }
             }
         }
         3 -> {
-            try {
-                var counter = 1
-                val homeFolder = System.getProperty("user.home")
-                while (File("${homeFolder}/SlimShotFastSave-${counter}.png").exists()) counter++
-                ImageIO.write(graphicBitmap!!.bitmap, "png", File("${homeFolder}/SlimShotFastSave-${counter}.png"))
-            } catch (e: Exception) {
+            if (graphicBitmap == null) {
+                isOpenDialog = 4
+            } else {
+                try {
+                    var counter = 1
+                    val homeFolder = System.getProperty("user.home")
+                    while (File("${homeFolder}/SlimShotFastSave-${counter}.png").exists()) counter++
+                    ImageIO.write(graphicBitmap!!.bitmap, "png", File("${homeFolder}/SlimShotFastSave-${counter}.png"))
+                } catch (e: Exception) {
+                }
             }
+        }
+        4 -> {
+            Dialog(
+                onCloseRequest = { isOpenDialog = 0 },
+                state = rememberDialogState(position = WindowPosition(Alignment.Center))
+            ) {
+                Text("Пока что вам нечего сохранять!")
+            };
         }
     }
     windowScope.MenuBar {
